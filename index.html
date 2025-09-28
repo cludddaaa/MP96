@@ -561,7 +561,7 @@
                         </div>
                         <div>
                             <label for="message" class="block text-sm font-medium text-gray-700">Brief Message (Optional)</label>
-                            <textarea id="message" name="message" rows="4" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary"></textarea>
+                            <textarea id="message" name="message" rows="4" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary" placeholder="Tell us what you're looking for..."></textarea>
                         </div>
                         <button type="submit" class="w-full btn-primary px-4 py-3 rounded-lg font-bold text-lg shadow-lg">
                             Send Message
@@ -661,19 +661,17 @@
                         <label for="applicant-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
                         <input type="tel" id="applicant-phone" name="phone" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary">
                     </div>
-                    <!-- Resume Upload Placeholder -->
+                    <!-- Previous Job/Experience (New Field) -->
                     <div>
-                        <label for="applicant-resume" class="block text-sm font-medium text-gray-700">Resume/CV (Placeholder - Requires Supabase Storage)</label>
-                        <div class="mt-1 p-3 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-sm text-gray-500">
-                            File upload functionality is not active. Please paste relevant experience in the box below or send your resume to `careers@mindspring.com`.
-                        </div>
+                        <label for="applicant-previous-job" class="block text-sm font-medium text-gray-700">Previous Job Title</label>
+                        <input type="text" id="applicant-previous-job" name="previousJob" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary" placeholder="e.g., Senior Client Coordinator">
                     </div>
                 </div>
 
-                <!-- Cover Letter -->
+                <!-- Cover Letter / Relevant Experience -->
                 <div>
-                    <label for="applicant-cover-letter" class="block text-sm font-medium text-gray-700">Cover Letter / Relevant Experience (Optional)</label>
-                    <textarea id="applicant-cover-letter" name="coverLetter" rows="5" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary" placeholder="Tell us why you're a great fit for this remote role..."></textarea>
+                    <label for="applicant-cover-letter" class="block text-sm font-medium text-gray-700">Relevant Experience / Cover Letter</label>
+                    <textarea id="applicant-cover-letter" name="coverLetter" rows="5" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-primary focus:border-primary" placeholder="Describe your relevant experience and why you're a great fit..."></textarea>
                 </div>
                 
                 <button type="submit" id="submit-button" class="w-full btn-primary px-4 py-3 rounded-lg font-bold text-lg shadow-lg transition duration-150">
@@ -684,7 +682,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Submitting...
+                    Submitting Application...
                 </div>
             </form>
         </div>
@@ -692,10 +690,7 @@
 
     <script>
         // --- Supabase Setup ---
-        //
-        // Project URL based on your ref: crhqufjnkuxsfjtbrvga
-        // Anonymous Key provided by you: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyaHF1Zmpua3V4c2ZqdGJydmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNDY5OTcsImV4cCI6MjA3NDYyMjk5N30.zLGVHsVe8ixX0zOfZhBkGM0lNfOe2WQgVRhr2AzQwEM
-        //
+        // Replace with your actual Supabase URL and Key if you want to connect to a different database
         const SUPABASE_URL = 'https://crhqufjnkuxsfjtbrvga.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyaHF1Zmpua3V4c2ZqdGJydmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNDY5OTcsImV4cCI6MjA3NDYyMjk5N30.zLGVHsVe8ixX0zOfZhBkGM0lNfOe2WQgVRhr2AzQwEM'; 
         
@@ -753,7 +748,6 @@
                 closeApplicationModal();
             }
         });
-
 
         // 3. Testimonial Carousel
         const testimonials = [
@@ -815,51 +809,62 @@
             setInterval(nextSlide, 7000); // Change slide every 7 seconds
         }
 
-        // --- Supabase Interaction: Job Application Submission ---
+        // --- Supabase Interaction: Job Application Submission (Functional) ---
 
         jobApplicationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Reset status message
+            // Set UI to loading state
             statusMessage.classList.add('hidden');
             statusMessage.textContent = '';
             submitButton.classList.add('hidden');
             loadingIndicator.classList.remove('hidden');
+            loadingIndicator.textContent = 'Submitting Application...';
 
             const form = e.target;
-            const data = {
-                job_title: form['jobTitle'].value,
-                applicant_name: form['name'].value,
-                applicant_email: form['email'].value,
-                applicant_phone: form['phone'].value,
-                cover_letter: form['coverLetter'].value,
-            };
             
-            // Simple validation is now redundant since the key is set
-
             try {
-                // The table name is 'job_applications'. 
-                const { error } = await supabase
+                // 1. Prepare Application Data
+                const data = {
+                    job_title: form['jobTitle'].value,
+                    applicant_name: form['name'].value,
+                    applicant_email: form['email'].value,
+                    applicant_phone: form['phone'].value,
+                    // Field added in previous step, matches 'previous_job_title' column in the database
+                    previous_job_title: form['previousJob'].value, 
+                    cover_letter: form['coverLetter'].value,
+                };
+                
+                // 2. Insert Application Record into the 'job_applications' table
+                const { error: dbError } = await supabase
                     .from('job_applications')
                     .insert([data]);
 
-                if (error) {
-                    throw error;
+                if (dbError) {
+                    throw dbError;
                 }
 
+                // 3. Success Feedback
                 showStatus('success', `Thank you, ${data.applicant_name}! Your application for ${data.job_title} has been submitted successfully.`);
                 jobApplicationForm.reset();
-                // Keep the button hidden on success
             } catch (error) {
                 console.error('Submission Error:', error);
-                // The RLS policy should prevent accidental SELECTs, but this handles INSERT errors.
-                showStatus('error', 'Application failed to submit. Please check your Supabase dashboard for any RLS policy issues. Error: ' + (error.message || 'Unknown error'));
-            } finally {
-                loadingIndicator.classList.add('hidden');
-                // Only show the submit button again on failure
-                if (statusMessage.classList.contains('bg-red-100')) { 
-                    submitButton.classList.remove('hidden');
+                
+                // 4. Error Feedback
+                let userMessage = 'Application failed to submit. Please ensure all required fields are filled out.';
+                
+                if (error.message.includes('violates row-level security policy')) {
+                     // This is the primary error if the RLS setup in the Canvas wasn't run correctly or the roles differ.
+                     userMessage = 'Application failed due to a database security error. Please ensure the RLS policy for the "job_applications" table allows INSERTs for the anon and authenticated roles.';
+                } else if (error.message) {
+                    userMessage = 'An unexpected error occurred: ' + error.message;
                 }
+                
+                showStatus('error', userMessage);
+            } finally {
+                // 5. Restore UI state
+                loadingIndicator.classList.add('hidden');
+                submitButton.classList.remove('hidden');
             }
         });
 
@@ -881,4 +886,3 @@
     </script>
 </body>
 </html>
-
